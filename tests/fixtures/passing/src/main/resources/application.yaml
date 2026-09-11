@@ -7,7 +7,7 @@ spring:
       schema: ${DATABASE_SCHEMA:probe}
   flyway:
     default-schema: ${DATABASE_SCHEMA:probe}
-probe:
+service:
   max-request-bytes: 1048576
 management:
   endpoints:

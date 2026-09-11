@@ -203,87 +203,13 @@ public class ${CLASS}Application {
 }
 EOF
 
-cat > "src/main/java/$ROOTPATH/api/ApiDocsController.java" <<EOF
+# The document controller, the size filter and the bearer guard are the shared runtime's,
+# vendored under io/guestgraph/service by the sync above; a feature adds its own endpoints under
+# the root's api package.
+mkdir -p "src/main/java/$ROOTPATH/api"
+cat > "src/main/java/$ROOTPATH/api/package-info.java" <<EOF
+/** The service's endpoints, filters and error answers; a feature adds its controllers here. */
 package $ROOT.api;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.yaml.snakeyaml.Yaml;
-
-/**
- * Serves the service's contract at GET /api-docs: the one document under src/main/resources/api,
- * generated from the sources named beside it. Outside /api/, so no credential is needed: the
- * document carries no data.
- */
-@RestController
-public class ApiDocsController {
-
-  private final Map<String, Object> document;
-
-  public ApiDocsController() {
-    try (InputStream in = new ClassPathResource("api/openapi.yaml").getInputStream()) {
-      this.document = new Yaml().load(in);
-    } catch (IOException e) {
-      throw new IllegalStateException("Cannot load api/openapi.yaml", e);
-    }
-  }
-
-  @GetMapping(value = "/api-docs", produces = "application/json")
-  public Map<String, Object> apiDocs() {
-    return document;
-  }
-}
-EOF
-
-cat > "src/main/java/$ROOTPATH/api/RequestSizeLimitFilter.java" <<EOF
-package $ROOT.api;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-/**
- * Refuses a request body larger than the configured cap with a problem detail, before anything
- * reads it: what a service stores is never larger than it meant to store.
- */
-@Component
-public class RequestSizeLimitFilter extends OncePerRequestFilter {
-
-  private final long maxRequestBytes;
-
-  public RequestSizeLimitFilter(@Value("\${$NAME.max-request-bytes:1048576}") long maxRequestBytes) {
-    this.maxRequestBytes = maxRequestBytes;
-  }
-
-  @Override
-  protected void doFilterInternal(
-      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-      throws ServletException, IOException {
-    if (request.getContentLengthLong() > maxRequestBytes) {
-      response.setStatus(HttpStatus.PAYLOAD_TOO_LARGE.value());
-      response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-      response
-          .getWriter()
-          .write(
-              "{\"type\":\"about:blank\",\"title\":\"Payload Too Large\",\"status\":413,\"detail\":\"the body may not exceed "
-                  + maxRequestBytes
-                  + " bytes\"}");
-      return;
-    }
-    chain.doFilter(request, response);
-  }
-}
 EOF
 
 cat > src/main/resources/application.yaml <<EOF
@@ -318,8 +244,8 @@ spring:
 server:
   port: 8080
 
-$NAME:
-  # A body larger than this is refused with a problem detail.
+service:
+  # A body larger than this is refused with a problem detail, by the shared runtime's filter.
   max-request-bytes: 1048576
 
 management:

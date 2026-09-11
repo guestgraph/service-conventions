@@ -34,6 +34,13 @@ echo "$out" | grep -q '✗ service-conventions: service-conventions/pmd-ruleset.
   && fail "drift exited 0" || true
 pass "one character of drift fails the sync check naming the file"
 
+service runtimedrift
+printf 'x' >> "$TMP/runtimedrift/src/main/java/io/guestgraph/service/Problems.java"
+out=$(cd "$TMP/runtimedrift" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-sync check 2>&1 || true)
+echo "$out" | grep -q '✗ service-conventions: src/main/java/io/guestgraph/service/Problems.java differs from' \
+  || fail "a drifted runtime class did not fail naming it: $out"
+pass "a drifted runtime class fails the sync check naming it"
+
 service missing
 rm "$TMP/missing/src/test/java/ServiceRulesTest.java"
 out=$(cd "$TMP/missing" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-sync check 2>&1 || true)
@@ -63,14 +70,14 @@ expect_missing() {  # <fixture name> <item> <shell that removes the item, run in
 }
 expect_missing parent parent "sed -i.bak 's|<version>0.5.0</version>|<version>0.1.0</version>|' pom.xml"
 expect_missing root root "mkdir -p src/main/java/io/guestgraph/other && touch src/main/java/io/guestgraph/other/Other.java"
-expect_missing api api "mkdir -p src/main/java/io/guestgraph/probe/ops && mv src/main/java/io/guestgraph/probe/api/ApiDocsController.java src/main/java/io/guestgraph/probe/ops/"
+expect_missing api api "mkdir -p src/main/java/io/guestgraph/probe/ops && mv src/main/java/io/guestgraph/probe/api/ProbeController.java src/main/java/io/guestgraph/probe/ops/"
 expect_missing apidoc api-document "rm src/main/resources/api/openapi.yaml"
 expect_missing apihand api-document "sed -i.bak '1d' src/main/resources/api/openapi.yaml"
 expect_missing apiunlisted api-document "printf 'openapi: 3.1.0\n' > src/main/resources/api/unlisted.yaml"
 expect_missing apisources api-document "rm src/main/resources/api/sources.json"
 expect_missing health health "sed -i.bak 's/include: health/include: health,env/' src/main/resources/application.yaml"
 expect_missing problem problem-details "sed -i.bak 's/enabled: true/enabled: false/' src/main/resources/application.yaml"
-expect_missing cap request-cap "rm src/main/java/io/guestgraph/probe/api/RequestSizeLimitFilter.java"
+expect_missing cap request-cap "sed -i.bak '/max-request-bytes/d' src/main/resources/application.yaml"
 expect_missing schema schema "sed -i.bak 's/default-schema: .*/default-schema: probe/' src/main/resources/application.yaml"
 expect_missing diagram diagram "rm docs/er-schema.mmd"
 expect_missing local local-profile "sed -i.bak '/^---/,\$d' src/main/resources/application.yaml"
@@ -93,3 +100,7 @@ done
 pass "a scaffolded service passes both checks and the family's on its first run"
 
 echo "all pass"
+
+# The shared runtime, compiled and tested where it is written.
+(cd spring/runtime && ./mvnw -q verify) || fail "the runtime module does not verify"
+pass "the runtime module verifies"
