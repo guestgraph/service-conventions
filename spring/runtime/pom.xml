@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shared runtime, built where it is written: the sources under io/guestgraph/service are
+     vendored into every service by service-conventions-sync, this module only compiles, formats
+     and tests them under the same parent a service uses. Never vendored itself. The
+     service-conventions symlink beside this file lets the parent find the ruleset by the path a
+     service has. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.guestgraph</groupId>
+    <artifactId>service-parent</artifactId>
+    <version>0.6.0</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>service-runtime</artifactId>
+  <name>GuestGraph service runtime</name>
+  <description>The few classes every guestgraph service on the Spring stack carries, vendored as source</description>
+
+  <properties>
+    <!-- Sources, not an application: nothing to repackage. -->
+    <spring-boot.repackage.skip>true</spring-boot.repackage.skip>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

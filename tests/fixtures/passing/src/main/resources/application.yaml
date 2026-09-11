@@ -1,19 +1,5 @@
-spring:
-  mvc:
-    problemdetails:
-      enabled: true
-  datasource:
-    hikari:
-      schema: ${DATABASE_SCHEMA:probe}
-  flyway:
-    default-schema: ${DATABASE_SCHEMA:probe}
-probe:
-  max-request-bytes: 1048576
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
+service:
+  schema: probe
 ---
 spring:
   config:

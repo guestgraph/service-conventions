@@ -39,6 +39,18 @@ repository owns, or the service's own document in the same folder. The `service-
 regenerates it and fails on drift, the way the diagram is held to the migrations, so a reader
 finds the whole API in one file and it is never older than its sources.
 
+## What every service carries as code
+
+`spring/runtime/` holds the package `io.guestgraph.service`, the few classes every service on the
+Spring stack carries: the writer that gives a refusal its shape, the exception that carries its
+answer, the advice that turns what nobody foresaw into a problem, the size filter, the document
+controller, a bearer guard present only where a token is configured, and the post-processor that
+loads `service-defaults.yaml`, the settings every service shares, beneath a service's own. The
+sync copies the classes into `src/main/java/io/guestgraph/service/` and the two resources into
+`src/main/resources/`, and the check names a copy that differs. A module beside them builds and
+tests them under the same parent a service uses; it is never vendored. A published library would
+replace the copies without a rename, once the family has a repository to publish to.
+
 ## How a rule changes
 
 In this repository, once: edit the stack's file, run `sh tests/run`, open a pull request, and tag
