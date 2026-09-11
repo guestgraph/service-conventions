@@ -30,6 +30,15 @@ request beside the service's own suite and the family's prose check. The pin is 
 moves when the owner decides, in a commit that says why, and a service that is behind is behind
 on purpose.
 
+## Where the API lives
+
+What a service serves at `/api-docs` is what lies under `src/main/resources/api/`, and nothing
+else. Beside the documents, `sources.json` names where each comes from: a path in the same
+repository for a copy of a frozen record, `owner/repo@commit:path` for a file another repository
+owns, or `own` for a document written here. The service check holds every copy equal to its
+source, the way the diagram is held to the migrations, so a reader finds the API where the
+configuration is and knows whether what they read is the original.
+
 ## How a rule changes
 
 In this repository, once: edit the stack's file, run `sh tests/run`, open a pull request, and tag
