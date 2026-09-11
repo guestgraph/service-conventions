@@ -1,0 +1,44 @@
+#!/bin/sh
+# tests/run — the sync check and the service check against fixtures, offline: the source is
+# this repository itself, through SERVICE_CONVENTIONS_SOURCE. Exit 1 on the first failure.
+set -eu
+cd "$(dirname "$0")/.."
+ROOT=$(pwd)
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
+fail() { echo "✗ $1" >&2; exit 1; }
+pass() { echo "✓ $1"; }
+
+# A service that vendors the Spring stack from this checkout.
+service() {
+  rm -rf "$TMP/$1"; cp -R tests/fixtures/service "$TMP/$1"
+  (cd "$TMP/$1" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh "$ROOT/spring/service-conventions-sync" sync > /dev/null)
+}
+
+# --- the sync check (user story 1) ---
+service same
+(cd "$TMP/same" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-sync check > /dev/null) \
+  || fail "a copy equal to the pin fails the sync check"
+[ -f "$TMP/same/.github/workflows/verify.yml" ] || fail "the sync did not write the workflow"
+[ -f "$TMP/same/src/test/java/ServiceRulesTest.java" ] || fail "the sync did not write the rules test"
+grep -q '<!-- service-conventions · v' "$TMP/same/AGENTS.md" || fail "the sync did not write the agent block"
+awk '/<!-- end conventions -->/{c=NR} /<!-- service-conventions · /{s=NR} END{exit !(c && s && s>c)}' "$TMP/same/AGENTS.md" \
+  || fail "the service block does not follow the family's block"
+pass "a copy equal to the pin passes the sync check, with the workflow, the test and the block written"
+
+service drift
+printf 'x' >> "$TMP/drift/service-conventions/pmd-ruleset.xml"
+out=$(cd "$TMP/drift" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-sync check 2>&1 || true)
+echo "$out" | grep -q '✗ service-conventions: service-conventions/pmd-ruleset.xml differs from' \
+  || fail "one character of drift did not fail naming the file: $out"
+(cd "$TMP/drift" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-sync check > /dev/null 2>&1) \
+  && fail "drift exited 0" || true
+pass "one character of drift fails the sync check naming the file"
+
+service missing
+rm "$TMP/missing/src/test/java/ServiceRulesTest.java"
+out=$(cd "$TMP/missing" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-sync check 2>&1 || true)
+echo "$out" | grep -q '✗ service-conventions: src/test/java/ServiceRulesTest.java differs from' \
+  || fail "a missing vendored file did not fail naming it: $out"
+pass "a missing vendored file fails the sync check naming it"
+
+echo "all pass"
