@@ -22,8 +22,8 @@ case $cmd in sync|check) ;; *) usage ;; esac
 PIN=service-conventions.json
 DIR=service-conventions
 FILES="pom.xml pmd-ruleset.xml ServiceRulesTest.java RegenApi.java regen-er regen-api verify.yml service-conventions-sync service-conventions-check AGENTS.md"
-RUNTIME="Problems.java ServiceException.java ServiceExceptionHandler.java RequestSizeLimitFilter.java ApiDocsController.java BearerTokenFilter.java ServiceDefaults.java"
-RESOURCES="service-defaults.yaml META-INF/spring.factories"
+RUNTIME="Problems.java ServiceException.java ServiceExceptionHandler.java RequestSizeLimitFilter.java ApiDocsController.java BearerTokenFilter.java ServiceDefaults.java ServiceAutoConfiguration.java"
+RESOURCES="service-defaults.yaml META-INF/spring.factories META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports"
 RUNTIME_DIR=src/main/java/io/guestgraph/service
 OPEN_RE='^<!-- service-conventions · v[^ ]* -->$'
 CLOSE='<!-- end service-conventions -->'
@@ -91,7 +91,7 @@ if [ "$cmd" = sync ]; then
   mkdir -p "$DIR" "$RUNTIME_DIR"
   for f in $FILES; do fetch "$f" "$DIR/$f"; done
   for f in $RUNTIME; do fetch "runtime/src/main/java/io/guestgraph/service/$f" "$RUNTIME_DIR/$f"; done
-  mkdir -p src/main/resources/META-INF
+  mkdir -p src/main/resources/META-INF/spring
   for f in $RESOURCES; do fetch "runtime/src/main/resources/$f" "src/main/resources/$f"; done
   for f in $FILES; do
     place=$(place_of "$f"); [ -n "$place" ] || continue

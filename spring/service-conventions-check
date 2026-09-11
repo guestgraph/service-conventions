@@ -74,7 +74,9 @@ grep -rq '"/api-docs"' "$rootpath/api" src/main/java/io/guestgraph/service 2>/de
 DEFAULTS=src/main/resources/service-defaults.yaml
 if [ -f "$DEFAULTS" ]; then
   grep -Eq "^[[:space:]]*schema:[[:space:]]*$schema[[:space:]]*$" "$YAML" 2>/dev/null || miss defaults "$YAML does not set service.schema to $schema"
-  for key in 'virtual:' 'problemdetails:' 'hikari:' 'default-schema:' 'create-schemas:' 'open-in-view:' 'ddl-auto:' 'lifecycle-management:' 'max-request-bytes:' 'exposure:'; do
+  # What is fixed for every service may not be restated; a value a service may set for itself,
+  # the request cap, is a default the service overrides above it.
+  for key in 'virtual:' 'problemdetails:' 'hikari:' 'default-schema:' 'create-schemas:' 'open-in-view:' 'ddl-auto:' 'lifecycle-management:' 'exposure:'; do
     grep -q "$key" "$YAML" 2>/dev/null && miss defaults "$YAML restates $key, which $DEFAULTS carries" || true
   done
   SHARED=$DEFAULTS
@@ -91,7 +93,7 @@ awk '/problemdetails:/{p=NR} p && NR==p+1 && /enabled:[[:space:]]*true/{f=1} END
   || miss problem-details "$SHARED does not enable spring.mvc.problemdetails"
 
 # request-cap: a property, and a class under api or the shared runtime that reads it
-grep -q 'max-request-bytes:' "$SHARED" 2>/dev/null || miss request-cap "$SHARED has no max-request-bytes property"
+grep -q 'max-request-bytes:' "$SHARED" "$YAML" 2>/dev/null || miss request-cap "neither $SHARED nor $YAML has a max-request-bytes property"
 grep -rq 'max-request-bytes' "$rootpath/api" src/main/java/io/guestgraph/service 2>/dev/null || miss request-cap "no class under $root.api or the shared runtime reads max-request-bytes"
 
 # schema: one variable in both places, the service's name as its default
