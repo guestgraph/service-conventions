@@ -1,0 +1,460 @@
+#!/bin/sh
+# new-service — write the skeleton of a guestgraph service of one stack, so that it passes the
+# family's sync check, the stack's sync check and the service check on its first run.
+#
+#   sh new-service <stack> <name> [directory]      directory defaults to ./<name>
+#
+# The files a service vendors come from this repository at the release this checkout is at,
+# through SERVICE_CONVENTIONS_SOURCE (a base URL or a local directory holding the stack's
+# directory), and the family's conventions from robertblust/conventions at the release this
+# repository pins, through CONVENTIONS_SOURCE. The result is a service, not a template: its
+# name, root package and schema are derived from <name> the way SERVICE.md says.
+set -eu
+
+[ $# -ge 2 ] || { echo "usage: sh new-service <stack> <name> [directory]" >&2; exit 2; }
+STACK=$1; NAME=$2; DIR=${3:-./$NAME}
+HERE=$(cd "$(dirname "$0")" && pwd)
+[ -d "$HERE/$STACK" ] || { echo "new-service: no stack $STACK here" >&2; exit 1; }
+[ "$STACK" = spring ] || { echo "new-service: only the spring stack has a skeleton yet" >&2; exit 1; }
+[ ! -e "$DIR" ] || { echo "new-service: $DIR exists" >&2; exit 1; }
+
+TAG=$(sed -n 's/^<!-- service-conventions · \(v[^ ]*\) -->$/\1/p' "$HERE/$STACK/AGENTS.md" | head -1)
+FAMILY_REPO=$(sed -n 's/.*"repo" *: *"\([^"]*\)".*/\1/p' "$HERE/conventions.json" | head -1)
+FAMILY_TAG=$(sed -n 's/.*"tag" *: *"\([^"]*\)".*/\1/p' "$HERE/conventions.json" | head -1)
+ROOT=io.guestgraph.$(echo "$NAME" | tr '-' '.')
+ROOTPATH=$(echo "$ROOT" | tr . /)
+SCHEMA=$(echo "$NAME" | tr '-' '_')
+CLASS=$(echo "$NAME" | awk -F- '{ for (i = 1; i <= NF; i++) printf "%s%s", toupper(substr($i, 1, 1)), substr($i, 2) }')
+
+mkdir -p "$DIR" && cd "$DIR"
+mkdir -p "src/main/java/$ROOTPATH/api" src/main/resources/db/migration src/test/java api docs .github/workflows
+
+cat > service-conventions.json <<EOF
+{ "repo": "guestgraph/service-conventions", "tag": "$TAG", "stack": "$STACK", "root": "$ROOT", "scope": "tenantId", "schema": "$SCHEMA", "jdbcClientAllowed": [] }
+EOF
+cat > conventions.json <<EOF
+{ "repo": "$FAMILY_REPO", "tag": "$FAMILY_TAG", "exclude": ["target"] }
+EOF
+
+# The family's conventions first, so the family's block leads the agent file.
+mkdir -p conventions
+FSRC=${CONVENTIONS_SOURCE:-https://raw.githubusercontent.com/$FAMILY_REPO/$FAMILY_TAG}
+case "$FSRC" in
+  http://*|https://*) curl -fsSL "$FSRC/conventions/conventions-sync" -o conventions/conventions-sync ;;
+  *) cp "$FSRC/conventions/conventions-sync" conventions/conventions-sync ;;
+esac
+cat > AGENTS.md <<EOF
+# $NAME — working conventions
+
+What this service is for is one paragraph in its README; this file says how to build and check.
+It is specified in the engine repository under \`specs/\`, and that specification is the owner of
+every decision here.
+
+## Build and verify
+
+\`\`\`bash
+./mvnw verify                                        # tests (Testcontainers, needs Docker), the rules, PMD, Spotless
+./mvnw spotless:apply                                # fix formatting
+sh service-conventions/regen-er                      # after a migration; CI checks drift
+sh service-conventions/service-conventions-check     # what of the list the service lacks
+sh conventions/conventions-check                     # the prose
+\`\`\`
+
+## Checks
+
+Four jobs, all required by the ruleset on \`main\`: \`verify\`, \`er-drift\` and
+\`service-conventions\`, from the vendored workflow, and \`conventions\`, called from
+$FAMILY_REPO at the pinned tag and shown by GitHub as \`conventions / conventions\`.
+EOF
+sh conventions/conventions-sync sync > /dev/null
+cat > CLAUDE.md <<'EOF'
+@AGENTS.md
+@conventions/WRITING.md
+@conventions/WORKING.md
+@conventions/REPOSITORIES.md
+EOF
+cat > .github/workflows/conventions.yml <<EOF
+name: conventions
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  conventions:
+    uses: $FAMILY_REPO/.github/workflows/check.yml@$FAMILY_TAG
+EOF
+
+# Then the stack's files, and its block after the family's.
+mkdir -p service-conventions
+SSRC=${SERVICE_CONVENTIONS_SOURCE:-https://raw.githubusercontent.com/guestgraph/service-conventions/$TAG}
+case "$SSRC" in
+  http://*|https://*) curl -fsSL "$SSRC/$STACK/service-conventions-sync" -o service-conventions/service-conventions-sync; curl -fsSL "$SSRC/LICENSE" -o LICENSE ;;
+  *) cp "$SSRC/$STACK/service-conventions-sync" service-conventions/service-conventions-sync; cp "$SSRC/LICENSE" LICENSE ;;
+esac
+sh service-conventions/service-conventions-sync sync > /dev/null
+VERSION=${TAG#v}
+
+cat > pom.xml <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.guestgraph</groupId>
+    <artifactId>service-parent</artifactId>
+    <version>$VERSION</version>
+    <relativePath>service-conventions/pom.xml</relativePath>
+  </parent>
+
+  <groupId>io.guestgraph</groupId>
+  <artifactId>$NAME</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>GuestGraph $NAME</name>
+  <description>A guestgraph service; what it is for is in its README</description>
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-docker-compose</artifactId>
+      <scope>runtime</scope>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- The contracts in api/ are served at /api-docs. -->
+      <resource>
+        <directory>api</directory>
+        <includes>
+          <include>*.yaml</include>
+        </includes>
+        <targetPath>api-contracts</targetPath>
+      </resource>
+    </resources>
+  </build>
+</project>
+EOF
+
+cat > "src/main/java/$ROOTPATH/${CLASS}Application.java" <<EOF
+package $ROOT;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ${CLASS}Application {
+
+  public static void main(String[] args) {
+    SpringApplication.run(${CLASS}Application.class, args);
+  }
+}
+EOF
+
+cat > "src/main/java/$ROOTPATH/api/ApiDocsController.java" <<EOF
+package $ROOT.api;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.yaml.snakeyaml.Yaml;
+
+/**
+ * Serves the service's contracts at GET /api-docs, the union of the files bundled from api/ at
+ * build time. Outside /api/, so no credential is needed: the document carries no data.
+ */
+@RestController
+public class ApiDocsController {
+
+  private final Map<String, Object> document;
+
+  public ApiDocsController() {
+    this.document = load();
+  }
+
+  @GetMapping(value = "/api-docs", produces = "application/json")
+  public Map<String, Object> apiDocs() {
+    return document;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> load() {
+    Map<String, Object> merged = new LinkedHashMap<>();
+    Map<String, Object> paths = new LinkedHashMap<>();
+    try {
+      Resource[] resources =
+          new PathMatchingResourcePatternResolver().getResources("classpath:api-contracts/*.yaml");
+      Yaml yaml = new Yaml();
+      for (Resource resource : resources) {
+        try (InputStream in = resource.getInputStream()) {
+          Map<String, Object> contract = yaml.load(in);
+          if (merged.isEmpty()) {
+            merged.putAll(contract);
+          }
+          Object p = contract.get("paths");
+          if (p instanceof Map<?, ?> m) {
+            paths.putAll((Map<String, Object>) m);
+          }
+        }
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException("Cannot load bundled API contracts", e);
+    }
+    merged.put("paths", paths);
+    return merged;
+  }
+}
+EOF
+
+cat > "src/main/java/$ROOTPATH/api/RequestSizeLimitFilter.java" <<EOF
+package $ROOT.api;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Refuses a request body larger than the configured cap with a problem detail, before anything
+ * reads it: what a service stores is never larger than it meant to store.
+ */
+@Component
+public class RequestSizeLimitFilter extends OncePerRequestFilter {
+
+  private final long maxRequestBytes;
+
+  public RequestSizeLimitFilter(@Value("\${$NAME.max-request-bytes:1048576}") long maxRequestBytes) {
+    this.maxRequestBytes = maxRequestBytes;
+  }
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+    if (request.getContentLengthLong() > maxRequestBytes) {
+      response.setStatus(HttpStatus.PAYLOAD_TOO_LARGE.value());
+      response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+      response
+          .getWriter()
+          .write(
+              "{\"type\":\"about:blank\",\"title\":\"Payload Too Large\",\"status\":413,\"detail\":\"the body may not exceed "
+                  + maxRequestBytes
+                  + " bytes\"}");
+      return;
+    }
+    chain.doFilter(request, response);
+  }
+}
+EOF
+
+cat > src/main/resources/application.yaml <<EOF
+spring:
+  application:
+    name: $NAME
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
+  datasource:
+    url: \${DATABASE_URL:jdbc:postgresql://localhost:5432/$SCHEMA}
+    username: \${DATABASE_USERNAME:$SCHEMA}
+    password: \${DATABASE_PASSWORD:$SCHEMA}
+    hikari:
+      # One schema, one role: every pooled connection opens with this search path.
+      schema: \${DATABASE_SCHEMA:$SCHEMA}
+  flyway:
+    enabled: true
+    default-schema: \${DATABASE_SCHEMA:$SCHEMA}
+    create-schemas: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  docker:
+    compose:
+      lifecycle-management: start_only
+
+server:
+  port: 8080
+
+$NAME:
+  # A body larger than this is refused with a problem detail.
+  max-request-bytes: 1048576
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+---
+# The local profile: the seeded setup a developer runs in one command.
+spring:
+  config:
+    activate:
+      on-profile: local
+EOF
+
+cat > compose.yaml <<EOF
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: $SCHEMA
+      POSTGRES_USER: $SCHEMA
+      POSTGRES_PASSWORD: $SCHEMA
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $SCHEMA"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+EOF
+
+cat > api/$NAME-api.yaml <<EOF
+openapi: 3.1.0
+info:
+  title: $NAME
+  version: 0.1.0
+  description: The contract this service serves at /api-docs; a feature's specification adds its paths here.
+paths: {}
+EOF
+
+cat > src/main/resources/db/migration/V1__init.sql <<EOF
+-- The first migration names no schema: the connection's search path decides.
+CREATE TABLE note (
+    id         uuid PRIMARY KEY,
+    tenant_id  uuid NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+EOF
+
+cat > .gitignore <<'EOF'
+target/
+.cache/
+EOF
+
+cat > README.md <<EOF
+# $NAME
+
+What this service does, in one paragraph, and why a reader should care; every decision lives in
+its specification in the engine repository, which this paragraph links rather than restates.
+
+## Running it
+
+\`./mvnw spring-boot:run\` starts it on port 8080, \`server.port\` in
+\`src/main/resources/application.yaml\`, and brings up the PostgreSQL of \`compose.yaml\` beside it.
+The \`local\` profile is the seeded setup a developer runs in one command.
+
+## One schema, one role
+
+The service creates its tables in one schema, \`$SCHEMA\` by default, and connects as a role that
+owns that schema and nothing else, so one database or two is the deployment's choice. Before the
+first start:
+
+\`\`\`sql
+create role $SCHEMA login password '…';
+create schema $SCHEMA authorization $SCHEMA;
+\`\`\`
+
+\`DATABASE_SCHEMA\` changes the schema name.
+
+## Building and checking
+
+\`./mvnw verify\` runs the tests on Testcontainers, so it needs Docker, then the architecture
+rules, PMD and Spotless; \`sh service-conventions/service-conventions-check\` says what of the
+list every guestgraph service has this one lacks; \`sh conventions/conventions-check\` holds the
+prose to the family's conventions; and \`AGENTS.md\` says how to work here.
+EOF
+
+# The diagram: from the migrations when Docker is here, the header alone when it is not.
+if command -v docker > /dev/null 2>&1 && docker info > /dev/null 2>&1; then
+  sh service-conventions/regen-er > /dev/null
+else
+  printf '%s\n%s\n' "%% GENERATED by service-conventions/regen-er (mermerd 0.13.0) from src/main/resources/db/migration/" "%% Do not edit by hand — CI fails on drift. Regenerate: sh service-conventions/regen-er" > docs/er-schema.mmd
+  echo "new-service: no Docker here; run sh service-conventions/regen-er before the first commit"
+fi
+
+echo "new-service: wrote $DIR as $ROOT, schema $SCHEMA, at service-conventions $TAG and conventions $FAMILY_TAG"
+echo "new-service: add the Maven wrapper with 'mvn -N wrapper:wrapper', then ./mvnw verify"

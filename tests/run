@@ -75,4 +75,19 @@ expect_missing local local-profile "sed -i.bak '/^---/,\$d' src/main/resources/a
 expect_missing readme readme "sed -i.bak '/create schema/d' README.md"
 expect_missing agents agents "sed -i.bak '/service-conventions/d' AGENTS.md"
 
+# --- the scaffold (user story 3) ---
+rm -rf "$TMP/probe"
+SERVICE_CONVENTIONS_SOURCE="$ROOT" CONVENTIONS_SOURCE="$ROOT" sh new-service spring probe "$TMP/probe" > /dev/null \
+  || fail "new-service did not write a service"
+(cd "$TMP/probe" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-sync check > /dev/null) \
+  || fail "the scaffolded service fails the sync check"
+out=$(cd "$TMP/probe" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-check 2>&1) \
+  || fail "the scaffolded service fails the service check: $out"
+(cd "$TMP/probe" && CONVENTIONS_SOURCE="$ROOT" sh conventions/conventions-sync check > /dev/null) \
+  || fail "the scaffolded service fails the family's sync check"
+for f in pom.xml compose.yaml CLAUDE.md LICENSE README.md AGENTS.md src/main/java/io/guestgraph/probe/ProbeApplication.java src/main/resources/db/migration/V1__init.sql; do
+  [ -f "$TMP/probe/$f" ] || fail "the scaffolded service lacks $f"
+done
+pass "a scaffolded service passes both checks and the family's on its first run"
+
 echo "all pass"

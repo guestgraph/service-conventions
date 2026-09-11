@@ -38,6 +38,17 @@ at least a minor release, because it makes every service's copy stale; a change 
 service to do more than re-sync is a major, and the notes say which. A service then moves its
 pin and re-syncs, and nothing else.
 
+## How a new service starts
+
+`sh new-service spring <name> [directory]` writes a service of the Spring stack that passes the
+family's sync check, the stack's sync check and the service check on its first run: the pin with
+the root package and the schema derived from the name, both vendored sets, a `pom.xml` naming the
+parent, the application class, the `api` package with the document controller and the size
+filter, the configuration with its local profile, the compose file, an empty contract, a first
+migration, the diagram, the README with its required sections and the agent file. It leaves two
+things to the person: the Maven wrapper, `mvn -N wrapper:wrapper`, and the paragraph in the README
+that says what the service is for, which no script can write.
+
 ## Building and checking
 
 `sh tests/run` holds the scripts to their fixtures: a service equal to its pin passes, one
