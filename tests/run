@@ -90,6 +90,29 @@ expect_missing local local-profile "sed -i.bak '/^---/,\$d' src/main/resources/a
 expect_missing readme readme "sed -i.bak '/create schema/d' README.md"
 expect_missing agents agents "sed -i.bak '/service-conventions/d' AGENTS.md"
 
+# error-shape: a refusal written by hand in the service's own sources, one case per grep of the
+# contract; the shared package under io/guestgraph/service/ is exempt, which the passing service
+# above already shows, since it carries every one of these lines there.
+plant() {  # <fixture name> <file name> <line planted in a class under the root's api package>
+  passing "$1"
+  printf 'package io.guestgraph.probe.api;\n\npublic class %s {\n  %s\n}\n' "$2" "$3" > "$TMP/$1/src/main/java/io/guestgraph/probe/api/$2.java"
+  out=$(check "$TMP/$1" || true)
+  echo "$out" | grep -q "^✗ service-conventions: error-shape: src/main/java/io/guestgraph/probe/api/$2.java " \
+    || fail "a hand-written refusal ($2) did not fail naming the file: $out"
+  (check "$TMP/$1" > /dev/null 2>&1) && fail "a hand-written refusal ($2) exited 0" || true
+  pass "a hand-written refusal ($2) fails the error-shape item naming the file"
+}
+plant rse Thrower 'void f() { throw new org.springframework.web.server.ResponseStatusException(null); }'
+plant pd Builder 'Object f() { return org.springframework.http.ProblemDetail.forStatus(400); }'
+plant literal Writer 'String type = "application/problem+json";'
+plant advice Advice '@org.springframework.web.bind.annotation.RestControllerAdvice class A {}'
+plant filter Guard 'static class F extends org.springframework.web.filter.OncePerRequestFilter { void f(jakarta.servlet.http.HttpServletResponse r) throws java.io.IOException { r.getWriter(); } }'
+# getWriter() outside a filter is not a refusal: a controller may stream a document.
+passing streamer
+printf 'package io.guestgraph.probe.api;\n\npublic class Streamer {\n  void f(jakarta.servlet.http.HttpServletResponse r) throws java.io.IOException { r.getWriter(); }\n}\n' > "$TMP/streamer/src/main/java/io/guestgraph/probe/api/Streamer.java"
+out=$(check "$TMP/streamer") || fail "getWriter() outside a filter failed the error-shape item: $out"
+pass "getWriter() outside a filter is no refusal"
+
 # --- the scaffold (user story 3) ---
 rm -rf "$TMP/probe"
 SERVICE_CONVENTIONS_SOURCE="$ROOT" CONVENTIONS_SOURCE="$ROOT" sh new-service spring probe "$TMP/probe" > /dev/null \
