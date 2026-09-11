@@ -5,11 +5,11 @@ one of them has the same shape, whatever it is written in, so that a person who 
 run the next. This is the list. A stack's directory beside this file, `spring/` today, holds the
 files that make the list true for that stack and a check that reads a service against it.
 
-An **API document** served at `/api-docs` without a credential: what lies under the service's
-resources in a folder named for the API, and nothing else, each document with its source named
-beside it, a frozen record in the same repository, another repository at a pinned commit, or the
-service's own, so a reader finds the API where the configuration is and a copy can never differ
-from what it stands for.
+An **API document** served at `/api-docs` without a credential: one `openapi.yaml` under the
+service's resources in a folder named for the API, generated from the sources named beside it, a
+frozen record in the same repository, another repository at a pinned commit, or the service's
+own, and held against a fresh generation in CI, so a reader finds the whole API in one file where
+the configuration is and it can never be older than what it is made of.
 
 A **health endpoint** at `/actuator/health` without a credential, and nothing else exposed there,
 so a platform can poll the service and learns nothing from it.
