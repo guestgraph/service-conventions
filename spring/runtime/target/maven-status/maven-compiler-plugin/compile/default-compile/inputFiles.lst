@@ -2,5 +2,6 @@
 /Users/rob/git/guestgraph/service-conventions/spring/runtime/src/main/java/io/guestgraph/service/BearerTokenFilter.java
 /Users/rob/git/guestgraph/service-conventions/spring/runtime/src/main/java/io/guestgraph/service/Problems.java
 /Users/rob/git/guestgraph/service-conventions/spring/runtime/src/main/java/io/guestgraph/service/RequestSizeLimitFilter.java
+/Users/rob/git/guestgraph/service-conventions/spring/runtime/src/main/java/io/guestgraph/service/ServiceDefaults.java
 /Users/rob/git/guestgraph/service-conventions/spring/runtime/src/main/java/io/guestgraph/service/ServiceException.java
 /Users/rob/git/guestgraph/service-conventions/spring/runtime/src/main/java/io/guestgraph/service/ServiceExceptionHandler.java

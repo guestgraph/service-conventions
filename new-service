@@ -213,46 +213,21 @@ package $ROOT.api;
 EOF
 
 cat > src/main/resources/application.yaml <<EOF
+# What is this service's own; everything every guestgraph service shares comes from the vendored
+# service-defaults.yaml, beneath this file and the environment.
 spring:
   application:
     name: $NAME
-  threads:
-    virtual:
-      enabled: true
-  mvc:
-    problemdetails:
-      enabled: true
   datasource:
     url: \${DATABASE_URL:jdbc:postgresql://localhost:5432/$SCHEMA}
     username: \${DATABASE_USERNAME:$SCHEMA}
     password: \${DATABASE_PASSWORD:$SCHEMA}
-    hikari:
-      # One schema, one role: every pooled connection opens with this search path.
-      schema: \${DATABASE_SCHEMA:$SCHEMA}
-  flyway:
-    enabled: true
-    default-schema: \${DATABASE_SCHEMA:$SCHEMA}
-    create-schemas: true
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: validate
-  docker:
-    compose:
-      lifecycle-management: start_only
 
 server:
   port: 8080
 
 service:
-  # A body larger than this is refused with a problem detail, by the shared runtime's filter.
-  max-request-bytes: 1048576
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
+  schema: $SCHEMA
 
 ---
 # The local profile: the seeded setup a developer runs in one command.

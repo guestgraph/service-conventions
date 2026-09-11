@@ -36,5 +36,9 @@ place in every service.
 A **README** that says what the service does, how to run it, the deployment paragraph with the two
 statements that create its role and schema, and the checks it runs.
 
+A **defaults document** it starts from, the settings every service shares, vendored and loaded
+beneath its own configuration and its environment, so its own file names its schema and what is
+its own and restates nothing that every service says.
+
 An **agent file** that opens with the family's block, then the stack's block, then the service's
 own text, so an agent reads the shared rules before the service's.
