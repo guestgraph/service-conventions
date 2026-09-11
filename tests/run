@@ -79,6 +79,10 @@ expect_missing health health "sed -i.bak 's/include: health/include: health,env/
 expect_missing problem problem-details "sed -i.bak 's/enabled: true/enabled: false/' src/main/resources/service-defaults.yaml"
 expect_missing cap request-cap "sed -i.bak '/max-request-bytes/d' src/main/resources/service-defaults.yaml"
 expect_missing schema schema "sed -i.bak 's/default-schema: .*/default-schema: probe/' src/main/resources/service-defaults.yaml"
+# A value a service may set for itself, the request cap, passes when restated above the defaults.
+passing cap-override; printf 'service:\n  max-request-bytes: 5242880\n' >> "$TMP/cap-override/src/main/resources/application.yaml"
+out=$(check "$TMP/cap-override") || fail "a service setting its own cap above the defaults failed: $out"
+pass "a service may set its own request cap above the defaults"
 expect_missing defaults defaults "printf 'management:\\n  endpoints:\\n    web:\\n      exposure:\\n        include: health\\n' >> src/main/resources/application.yaml"
 expect_missing noschema defaults "sed -i.bak '/schema: probe/d' src/main/resources/application.yaml"
 expect_missing diagram diagram "rm docs/er-schema.mmd"
