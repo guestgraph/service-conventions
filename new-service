@@ -27,7 +27,7 @@ SCHEMA=$(echo "$NAME" | tr '-' '_')
 CLASS=$(echo "$NAME" | awk -F- '{ for (i = 1; i <= NF; i++) printf "%s%s", toupper(substr($i, 1, 1)), substr($i, 2) }')
 
 mkdir -p "$DIR" && cd "$DIR"
-mkdir -p "src/main/java/$ROOTPATH/api" src/main/resources/db/migration src/test/java api docs .github/workflows
+mkdir -p "src/main/java/$ROOTPATH/api" src/main/resources/db/migration src/main/resources/api src/test/java docs .github/workflows
 
 cat > service-conventions.json <<EOF
 { "repo": "guestgraph/service-conventions", "tag": "$TAG", "stack": "$STACK", "root": "$ROOT", "scope": "tenantId", "schema": "$SCHEMA", "jdbcClientAllowed": [] }
@@ -185,21 +185,6 @@ cat > pom.xml <<EOF
     </dependency>
   </dependencies>
 
-  <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-      <!-- The contracts in api/ are served at /api-docs. -->
-      <resource>
-        <directory>api</directory>
-        <includes>
-          <include>*.yaml</include>
-        </includes>
-        <targetPath>api-contracts</targetPath>
-      </resource>
-    </resources>
-  </build>
 </project>
 EOF
 
@@ -232,8 +217,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Serves the service's contracts at GET /api-docs, the union of the files bundled from api/ at
- * build time. Outside /api/, so no credential is needed: the document carries no data.
+ * Serves the service's contracts at GET /api-docs: the union of the documents under
+ * src/main/resources/api, each named with its source beside it. Outside /api/, so no credential
+ * is needed: the document carries no data.
  */
 @RestController
 public class ApiDocsController {
@@ -255,7 +241,7 @@ public class ApiDocsController {
     Map<String, Object> paths = new LinkedHashMap<>();
     try {
       Resource[] resources =
-          new PathMatchingResourcePatternResolver().getResources("classpath:api-contracts/*.yaml");
+          new PathMatchingResourcePatternResolver().getResources("classpath:api/*.yaml");
       Yaml yaml = new Yaml();
       for (Resource resource : resources) {
         try (InputStream in = resource.getInputStream()) {
@@ -392,13 +378,17 @@ services:
       retries: 15
 EOF
 
-cat > api/$NAME-api.yaml <<EOF
+cat > src/main/resources/api/$NAME-api.yaml <<EOF
 openapi: 3.1.0
 info:
   title: $NAME
   version: 0.1.0
   description: The contract this service serves at /api-docs; a feature's specification adds its paths here.
 paths: {}
+EOF
+
+cat > src/main/resources/api/sources.json <<EOF
+{ "$NAME-api.yaml": "own" }
 EOF
 
 cat > src/main/resources/db/migration/V1__init.sql <<EOF

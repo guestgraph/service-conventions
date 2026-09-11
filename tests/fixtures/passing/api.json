@@ -1,1 +1,0 @@
-{ "repo": "guestgraph/engine", "commit": "0123456789abcdef", "files": { "api/probe-api.yaml": "specs/probe/contracts/probe-api.yaml" } }
