@@ -30,12 +30,11 @@ import org.springframework.data.repository.Repository;
 
 /**
  * The persistence guardrails every guestgraph service on the Spring stack holds, vendored from
- * guestgraph/service-conventions and never edited in a service: every repository query is
- * explicit and scoped by the service's own key, tenant or connection, repository scaffolding that
- * bypasses it is banned, no ad-hoc EntityManager queries, raw SQL only where the service names
- * it, and JPA confined to the persistence package. In the default package on purpose: one file
- * runs in every service, reading the root, the scope and the exemptions from
- * service-conventions.json.
+ * guestgraph/service-conventions and never edited in a service: every repository query is explicit
+ * and scoped by the service's own key, tenant or connection, repository scaffolding that bypasses
+ * it is banned, no ad-hoc EntityManager queries, raw SQL only where the service names it, and JPA
+ * confined to the persistence package. In the default package on purpose: one file runs in every
+ * service, reading the root, the scope and the exemptions from service-conventions.json.
  */
 class ServiceRulesTest {
 
