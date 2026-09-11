@@ -59,14 +59,21 @@ at least a minor release, because it makes every service's copy stale; a change 
 service to do more than re-sync is a major, and the notes say which. A service then moves its
 pin and re-syncs, and nothing else.
 
+The runtime's example, walked once: the detail sentence of the `payload-too-large` problem
+changed in the shared size filter, the runtime module verified, and v0.7.1 was tagged. Each
+service then moved its pin, ran the sync and opened one pull request, whose diff was the pin,
+the parent's version where the service's `pom.xml` and the vendored copies name it, and the
+filter class. No service edited a line of its own, and both suites stayed green.
+
 ## How a new service starts
 
 `sh new-service spring <name> [directory]` writes a service of the Spring stack that passes the
 family's sync check, the stack's sync check and the service check on its first run: the pin with
 the root package and the schema derived from the name, both vendored sets, a `pom.xml` naming the
-parent, the application class, the `api` package with the document controller and the size
-filter, the configuration with its local profile, the compose file, an empty contract, a first
-migration, the diagram, the README with its required sections and the agent file. It leaves two
+parent, the application class, the `api` package with nothing of its own yet, since the document
+controller and the size filter arrive vendored in the shared package, the configuration with its
+local profile and its schema above the shared defaults, the compose file, an empty contract, a
+first migration, the diagram, the README with its required sections and the agent file. It leaves two
 things to the person: the Maven wrapper, `mvn -N wrapper:wrapper`, and the paragraph in the README
 that says what the service is for, which no script can write.
 
