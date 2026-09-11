@@ -40,5 +40,10 @@ A **defaults document** it starts from, the settings every service shares, vendo
 beneath its own configuration and its environment, so its own file names its schema and what is
 its own and restates nothing that every service says.
 
+One **shape for every refusal**: a problem detail whose type is a section of
+`https://guestgraph.io/problems/`, thrown as the shared exception or written by the shared
+package and never by hand in the service's own code, so a caller reads one shape from every
+service and follows the type to what it means.
+
 An **agent file** that opens with the family's block, then the stack's block, then the service's
 own text, so an agent reads the shared rules before the service's.

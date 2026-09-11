@@ -47,7 +47,11 @@ answer, the advice that turns what nobody foresaw into a problem, the size filte
 controller, a bearer guard present only where a token is configured, and the post-processor that
 loads `service-defaults.yaml`, the settings every service shares, beneath a service's own. The
 sync copies the classes into `src/main/java/io/guestgraph/service/` and the two resources into
-`src/main/resources/`, and the check names a copy that differs. A module beside them builds and
+`src/main/resources/`, and the check names a copy that differs. The check's `error-shape` item
+reads the service's own sources for a refusal written by hand, a status exception, a problem
+built or its media type written directly, an advice or a filter answering through its writer,
+and names the file, so the one place a refusal takes its shape stays the shared package. A
+module beside them builds and
 tests them under the same parent a service uses; it is never vendored. A published library would
 replace the copies without a rename, once the family has a repository to publish to.
 
