@@ -43,7 +43,7 @@ pass "a missing vendored file fails the sync check naming it"
 
 # --- the service check (user story 2) ---
 # A passing service: the fixture, vendored from this checkout, with every item in place.
-check() { (cd "$1" && SERVICE_CONVENTIONS_SOURCE="$ROOT" SERVICE_CONVENTIONS_OWNER="$ROOT/tests/fixtures/owner" sh "$ROOT/spring/service-conventions-check" 2>&1); }
+check() { (cd "$1" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh "$ROOT/spring/service-conventions-check" 2>&1); }
 passing() {
   rm -rf "$TMP/$1"; cp -R tests/fixtures/passing "$TMP/$1"
   (cd "$TMP/$1" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh "$ROOT/spring/service-conventions-sync" sync > /dev/null)
@@ -61,12 +61,13 @@ expect_missing() {  # <fixture name> <item> <shell that removes the item, run in
   (check "$TMP/$1" > /dev/null 2>&1) && fail "removing the $2 exited 0" || true
   pass "removing the $2 fails the service check naming it"
 }
-expect_missing parent parent "sed -i.bak 's|<version>0.4.0</version>|<version>0.1.0</version>|' pom.xml"
+expect_missing parent parent "sed -i.bak 's|<version>0.5.0</version>|<version>0.1.0</version>|' pom.xml"
 expect_missing root root "mkdir -p src/main/java/io/guestgraph/other && touch src/main/java/io/guestgraph/other/Other.java"
 expect_missing api api "mkdir -p src/main/java/io/guestgraph/probe/ops && mv src/main/java/io/guestgraph/probe/api/ApiDocsController.java src/main/java/io/guestgraph/probe/ops/"
-expect_missing apidoc api-document "rm src/main/resources/api/probe-api.yaml"
-expect_missing apipin api-document "printf 'paths: {x: 1}\n' >> src/main/resources/api/probe-api.yaml"
-expect_missing apisource api-document "printf 'openapi: 3.1.0\\n' > src/main/resources/api/unlisted.yaml"
+expect_missing apidoc api-document "rm src/main/resources/api/openapi.yaml"
+expect_missing apihand api-document "sed -i.bak '1d' src/main/resources/api/openapi.yaml"
+expect_missing apiunlisted api-document "printf 'openapi: 3.1.0\n' > src/main/resources/api/unlisted.yaml"
+expect_missing apisources api-document "rm src/main/resources/api/sources.json"
 expect_missing health health "sed -i.bak 's/include: health/include: health,env/' src/main/resources/application.yaml"
 expect_missing problem problem-details "sed -i.bak 's/enabled: true/enabled: false/' src/main/resources/application.yaml"
 expect_missing cap request-cap "rm src/main/java/io/guestgraph/probe/api/RequestSizeLimitFilter.java"
