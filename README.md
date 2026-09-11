@@ -1,4 +1,4 @@
-# service-conventions
+# GuestGraph — Service Conventions
 
 Every guestgraph service has the same shape by check, not by hand. `SERVICE.md` is the list of
 what a service has, whatever it is written in; a directory per stack, `spring/` today, holds the
