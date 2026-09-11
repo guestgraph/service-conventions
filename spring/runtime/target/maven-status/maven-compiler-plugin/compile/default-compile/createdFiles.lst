@@ -1,9 +1,0 @@
-io/guestgraph/service/Problems.class
-io/guestgraph/service/ServiceExceptionHandler.class
-io/guestgraph/service/BearerTokenFilter.class
-io/guestgraph/service/ServiceException.class
-io/guestgraph/service/RequestSizeLimitFilter$CachedBodyRequest.class
-io/guestgraph/service/ApiDocsController.class
-io/guestgraph/service/ServiceDefaults.class
-io/guestgraph/service/RequestSizeLimitFilter$CachedBodyRequest$1.class
-io/guestgraph/service/RequestSizeLimitFilter.class
