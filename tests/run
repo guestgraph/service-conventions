@@ -113,6 +113,26 @@ printf 'package io.guestgraph.probe.api;\n\npublic class Streamer {\n  void f(ja
 out=$(check "$TMP/streamer") || fail "getWriter() outside a filter failed the error-shape item: $out"
 pass "getWriter() outside a filter is no refusal"
 
+# --- what the parent pins is what Dependabot is told to leave alone ---
+# The ignore list is a fact about the parent, not a preference, and a missing entry is invisible
+# until Dependabot happens to pick that artifact and a service's sync check refuses the result.
+missing=""
+for coord in $(awk '
+  /<parent>/ { p = 1 }
+  p && /<groupId>/  { gsub(/.*<groupId>|<\/groupId>.*/, ""); g = $0 }
+  p && /<artifactId>/ { gsub(/.*<artifactId>|<\/artifactId>.*/, ""); print g ":" $0; p = 0 }
+' spring/pom.xml; python3 - <<'PY'
+import re, pathlib
+s = pathlib.Path("spring/pom.xml").read_text()
+for m in re.finditer(r"<groupId>([^<]+)</groupId>\s*<artifactId>([^<]+)</artifactId>\s*<version>\$\{[^}]+\}</version>", s):
+    print(f"{m.group(1)}:{m.group(2)}")
+PY
+); do
+  grep -q "\"$coord\"" spring/dependabot.yml || missing="$missing $coord"
+done
+[ -z "$missing" ] || fail "the parent pins$missing, which spring/dependabot.yml does not ignore"
+pass "everything the parent pins is ignored by the vendored Dependabot file"
+
 # --- the scaffold (user story 3) ---
 rm -rf "$TMP/probe"
 SERVICE_CONVENTIONS_SOURCE="$ROOT" CONVENTIONS_SOURCE="$ROOT" sh new-service spring probe "$TMP/probe" > /dev/null \

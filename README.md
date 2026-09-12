@@ -21,9 +21,9 @@ from:
 ```
 
 `sh service-conventions/service-conventions-sync sync` writes `service-conventions/` from the
-pinned release and puts three of its files where a build reads them: the workflow in
-`.github/workflows/verify.yml`, the rules test in `src/test/java/ServiceRulesTest.java`, and the
-block in `AGENTS.md`. The service's `pom.xml` names `service-conventions/pom.xml` as its parent by
+pinned release and puts four of its files where a tool reads them: the workflow in
+`.github/workflows/verify.yml`, Dependabot's configuration in `.github/dependabot.yml`, the rules
+test in `src/test/java/ServiceRulesTest.java`, and the block in `AGENTS.md`. The service's `pom.xml` names `service-conventions/pom.xml` as its parent by
 `relativePath`, at the version the tag names. `sh service-conventions/service-conventions-sync
 check` says whether the copy still matches the release, and the workflow runs it on every pull
 request beside the service's own suite and the family's prose check. The pin is editorial: it
@@ -54,6 +54,16 @@ and names the file, so the one place a refusal takes its shape stays the shared 
 module beside them builds and
 tests them under the same parent a service uses; it is never vendored. A published library would
 replace the copies without a rename, once the family has a repository to publish to.
+
+## Who watches the versions
+
+Every version a service builds with is declared in the parent here, so a bump belongs here and
+reaches a service by a release and a re-sync. Dependabot cannot know that: Maven follows the
+parent a service takes by `relativePath`, so it finds the vendored copy and proposes a bump
+inside it, which the sync check then refuses. **The configuration that tells it to leave those
+artifacts alone is vendored like everything else**, because the list is a fact about the parent
+rather than a preference a service holds, and `sh tests/run` holds the list to what the parent
+actually pins. Everything a service declares for itself stays watched.
 
 ## How a rule changes
 
