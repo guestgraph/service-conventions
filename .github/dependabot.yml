@@ -1,0 +1,25 @@
+# The versions every guestgraph service builds with are declared here, in the parent each one
+# vendors, so a bump belongs here and reaches a service by a release and a re-sync. A service's
+# own Dependabot ignores these artifacts for that reason.
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directories:
+      - "/spring"
+      - "/spring/runtime"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
