@@ -12,12 +12,7 @@ Everything below this block is this repository's own. `sh conventions/convention
 
 # service-conventions — working conventions
 
-The code-level rules of the guestgraph services: one list of what every service has, whatever
-its stack, and one directory per stack holding the files that make it true. Every guestgraph
-service vendors a stack's directory at a pinned release, the way every member of the family
-vendors `conventions/`. It is specified in the engine repository, under
-`specs/007-service-conventions/`, and that specification is the owner of every decision here:
-this file says how to build and check, not what to build.
+The code-level rules of the guestgraph services: one list of what every service has, whatever its stack, and one directory per stack holding the files that make it true. Every guestgraph service vendors a stack's directory at a pinned release, the way every member of the family vendors `conventions/`. It is specified in the engine repository, under `specs/007-service-conventions/`, and that specification is the owner of every decision here: this file says how to build and check, not what to build.
 
 ## Build and check
 
@@ -28,7 +23,4 @@ sh conventions/conventions-check
 
 ## Checks
 
-Two jobs, both required by the ruleset on `main`: `tests`, this repository's own, and
-`conventions`, called from robertblust/conventions at the pinned tag and shown by GitHub as
-`conventions / conventions`. The prose check leaves out `tests`, whose fixtures quote the very
-words a service's README must carry.
+Two jobs, both required by the ruleset on `main`: `tests`, this repository's own, and `conventions`, called from robertblust/conventions at the pinned tag and shown by GitHub as `conventions / conventions`. The prose check leaves out `tests`, whose fixtures quote the very words a service's README must carry.
