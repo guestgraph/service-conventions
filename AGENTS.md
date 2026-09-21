@@ -23,7 +23,7 @@ sh conventions/conventions-check
 
 ## Releasing
 
-The version is in two places and both move before the tag: the marker on the first line of `spring/AGENTS.md`, and `<version>` on `io.guestgraph:service-parent` in `spring/pom.xml`. The marker is what `service-conventions-sync check` compares in a service's AGENTS.md block; the pom version is what a service's own `pom.xml` must name as its parent, which `service-conventions-check` reads and Maven resolves by relativePath. Moving one and not the other leaves both sync checks green in the service and fails the job, which is how v0.10.0 went out unusable.
+The version is in three places and all of them move before the tag: the marker on the first line of `spring/AGENTS.md`, `<version>` on `io.guestgraph:service-parent` in `spring/pom.xml`, and the parent `<version>` the runtime module names in `spring/runtime/pom.xml`. `grep -rn '<the old version>' --include='*.xml' --include='*.md' spring/` finds all three and is the check worth running before the tag. The marker is what `service-conventions-sync check` compares in a service's AGENTS.md block; the pom version is what a service's own `pom.xml` must name as its parent, which `service-conventions-check` reads and Maven resolves by relativePath. Moving one and not the other leaves both sync checks green in the service and fails the job, which is how v0.10.0 went out unusable.
 
 ## Checks
 
