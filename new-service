@@ -66,13 +66,8 @@ Four jobs, all required by the ruleset on \`main\`: \`verify\`, \`er-drift\` and
 \`service-conventions\`, from the vendored workflow, and \`conventions\`, called from
 $FAMILY_REPO at the pinned tag and shown by GitHub as \`conventions / conventions\`.
 EOF
+# The sync writes CLAUDE.md too, the family's copy, which its check then holds to the release.
 sh conventions/conventions-sync sync > /dev/null
-cat > CLAUDE.md <<'EOF'
-@AGENTS.md
-@conventions/WRITING.md
-@conventions/WORKING.md
-@conventions/REPOSITORIES.md
-EOF
 cat > .github/workflows/conventions.yml <<EOF
 name: conventions
 on:
