@@ -1,0 +1,10 @@
+{
+  "pins": [
+    { "kind": "conventions", "file": "conventions.json", "repo": "robertblust/conventions" }
+  ],
+  "verify": ["sh tests/run"],
+  "release": [
+    "sed -i.bak '1s/service-conventions · v[^ ]*/service-conventions · v{version}/' spring/AGENTS.md && rm spring/AGENTS.md.bak",
+    "sed -i.bak '\\%<artifactId>service-parent</artifactId>%{n;s#<version>[^<]*</version>#<version>{version}</version>#;}' spring/pom.xml spring/runtime/pom.xml && rm spring/pom.xml.bak spring/runtime/pom.xml.bak"
+  ]
+}
