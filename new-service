@@ -321,4 +321,4 @@ else
 fi
 
 echo "new-service: wrote $DIR as $ROOT, schema $SCHEMA, at service-conventions $TAG and conventions $FAMILY_TAG"
-echo "new-service: add the Maven wrapper with 'mvn -N wrapper:wrapper', then sh service-conventions/regen-api and ./mvnw verify"
+echo "new-service: run sh service-conventions/regen-api and ./mvnw verify"

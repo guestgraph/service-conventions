@@ -21,9 +21,13 @@ service same
 [ -f "$TMP/same/.github/workflows/verify.yml" ] || fail "the sync did not write the workflow"
 [ -f "$TMP/same/src/test/java/ServiceRulesTest.java" ] || fail "the sync did not write the rules test"
 grep -q '<!-- service-conventions · v' "$TMP/same/AGENTS.md" || fail "the sync did not write the agent block"
+for f in .mvn/wrapper/maven-wrapper.properties mvnw mvnw.cmd; do
+  cmp -s "$TMP/same/$f" "spring/runtime/$f" || fail "the sync did not write the runtime's $f"
+done
+[ -x "$TMP/same/mvnw" ] || fail "the sync wrote mvnw without the executable bit"
 awk '/<!-- end conventions -->/{c=NR} /<!-- service-conventions · /{s=NR} END{exit !(c && s && s>c)}' "$TMP/same/AGENTS.md" \
   || fail "the service block does not follow the family's block"
-pass "a copy equal to the pin passes the sync check, with the workflow, the test and the block written"
+pass "a copy equal to the pin passes the sync check, with the workflow, the test, the wrapper and the block written"
 
 service drift
 printf 'x' >> "$TMP/drift/service-conventions/pmd-ruleset.xml"
@@ -40,6 +44,13 @@ out=$(cd "$TMP/runtimedrift" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-co
 echo "$out" | grep -q '✗ service-conventions: src/main/java/io/guestgraph/service/Problems.java differs from' \
   || fail "a drifted runtime class did not fail naming it: $out"
 pass "a drifted runtime class fails the sync check naming it"
+
+service wrapperdrift
+sed -i.bak 's/apache-maven-[0-9.]*-bin/apache-maven-3.0.0-bin/' "$TMP/wrapperdrift/.mvn/wrapper/maven-wrapper.properties"
+out=$(cd "$TMP/wrapperdrift" && SERVICE_CONVENTIONS_SOURCE="$ROOT" sh service-conventions/service-conventions-sync check 2>&1 || true)
+echo "$out" | grep -q '✗ service-conventions: .mvn/wrapper/maven-wrapper.properties differs from' \
+  || fail "a service's own Maven version did not fail naming the wrapper: $out"
+pass "a service's own Maven version fails the sync check naming the wrapper"
 
 service missing
 rm "$TMP/missing/src/test/java/ServiceRulesTest.java"
@@ -132,6 +143,20 @@ PY
 done
 [ -z "$missing" ] || fail "the parent pins$missing, which spring/dependabot.yml does not ignore"
 pass "everything the parent pins is ignored by the vendored Dependabot file"
+
+# The wrapper and the workflow are vendored too, so what Dependabot would bump in them is ignored
+# in a service and watched here instead: the Maven version through the runtime module's wrapper,
+# and each action through tests.yml, which Dependabot reads and which must name the version the
+# vendored workflow does. A bump of tests.yml alone goes red here until spring/verify.yml follows.
+grep -q '"org.apache.maven:apache-maven"' spring/dependabot.yml \
+  || fail "spring/dependabot.yml does not ignore the Maven the vendored wrapper names"
+for use in $(sed -n 's/^ *- uses: *\([^ ]*\).*/\1/p' spring/verify.yml | sort -u); do
+  action=${use%@*}
+  grep -q "\"$action\"" spring/dependabot.yml || fail "spring/dependabot.yml does not ignore $action, which the vendored workflow uses"
+  grep -q "uses: $use\$" .github/workflows/tests.yml \
+    || fail "the vendored workflow uses $use, which .github/workflows/tests.yml does not, so no Dependabot run here watches it"
+done
+pass "the vendored wrapper and workflow are ignored in a service and watched here"
 
 # --- the scaffold (user story 3) ---
 rm -rf "$TMP/probe"
