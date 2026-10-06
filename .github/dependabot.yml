@@ -19,6 +19,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # The family's shared check, pinned by tag beside conventions.json and moved with it.
+    ignore:
+      - dependency-name: "*robertblust/conventions*"
     groups:
       actions:
         patterns:
