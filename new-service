@@ -274,7 +274,9 @@ CREATE TABLE note (
 );
 EOF
 
-cat > .gitignore <<'EOF'
+# Appended, not written: conventions-sync has already put the family's own lines here, and a
+# scaffold that wrote over them would hand a new service a .gitignore its first check refuses.
+cat >> .gitignore <<'EOF'
 target/
 .cache/
 EOF
